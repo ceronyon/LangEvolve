@@ -13,6 +13,8 @@ from gi.repository import Gtk, GLib
 __author__ = "ojima"
 __version__ = "0.1"
 
+RULESET_CURRENT_VERSION = 1
+
 
 class LangEvolveWindow(Gtk.Window):
 
@@ -158,25 +160,37 @@ class LangEvolveWindow(Gtk.Window):
                 with open(dialog.get_filename(), 'r') as fp:
                     data = json.load(fp)
                     
-                    res = ""
-                    if 'categories' in data:
-                        categories = data['categories']
-                        for key in categories:
-                            value = categories[key]
-                            res += "{0}={1}\n".format(key, value)
+                    version_ok = True
+                    ver = int(data['version'])
+                    if ver < RULESET_CURRENT_VERSION:
+                        warning = Gtk.MessageDialog(self, 0, Gtk.MessageType.WARNING, Gtk.ButtonsType.OK_CANCEL, "Warning!")
+                        warning.format_secondary_text("The selected ruleset is of an older version. Do you want to load it anyway?")
+                        
+                        warningok = warning.run()
+                        if warningok == Gtk.ResponseType.CANCEL:
+                            version_ok = False
+                        warning.destroy()
                     
-                    self.categories.set_text(res)
-                    
-                    res = ""
-                    if 'rules' in data:
-                        rules = data['rules']
-                        for rule in rules:
-                            key = list(rule.keys())[0]
-                            value = rule[key]
-                            
-                            res += "{0}>{1}\n".format(key, value)
-                    
-                    self.rules.set_text(res)
+                    if version_ok:
+                        res = ""
+                        if 'categories' in data:
+                            categories = data['categories']
+                            for key in categories:
+                                value = categories[key]
+                                res += "{0}={1}\n".format(key, value)
+                        
+                        self.categories.set_text(res)
+                        
+                        res = ""
+                        if 'rules' in data:
+                            rules = data['rules']
+                            for rule in rules:
+                                key = list(rule.keys())[0]
+                                value = rule[key]
+                                
+                                res += "{0}>{1}\n".format(key, value)
+                        
+                        self.rules.set_text(res)
                     
             except Exception as e:
                 err = Gtk.MessageDialog(self, 0, Gtk.MessageType.ERROR, Gtk.ButtonsType.CANCEL, "Failed to read file.")
@@ -216,7 +230,7 @@ class LangEvolveWindow(Gtk.Window):
             
             response = dialog.run()
             if response == Gtk.ResponseType.OK:
-                res = { 'categories' : {}, 'rules' : [] }
+                res = { 'version' : RULESET_CURRENT_VERSION, 'categories' : {}, 'rules' : [] }
                 
                 cats = self.categories.get_text(self.categories.get_start_iter(), self.categories.get_end_iter(), True).split('\n')
                 for c in cats:
